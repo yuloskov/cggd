@@ -49,5 +49,7 @@ protected:
 	float angle_of_view;
 	float z_near;
 	float z_far;
+
+	float convert_to_rad(float degrees);
 };
 } // namespace cg::world
