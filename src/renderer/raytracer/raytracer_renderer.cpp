@@ -32,6 +32,11 @@ void cg::renderer::ray_tracing_renderer::init()
 	raytracer->set_render_target(render_target);
 	raytracer->set_viewport(settings->width, settings->height);
 	raytracer->set_per_shape_vertex_buffer(model->get_per_shape_buffer());
+
+	lights.push_back({
+		float3{0, 1.58f, -0.03f}, 
+		float3{0.78f, 0.78f, 0.78f}
+	});
 }
 
 void cg::renderer::ray_tracing_renderer::destroy() {}
@@ -52,9 +57,20 @@ void cg::renderer::ray_tracing_renderer::render()
 		return payload;
 	};
 
-	raytracer->closest_hit_shader = [](const ray& ray, payload& payload, const triangle<cg::vertex> triangle) 
+	raytracer->closest_hit_shader = [&](const ray& ray, payload& payload, const triangle<cg::vertex> triangle) 
 	{
-		payload.color = cg::color::from_float3(triangle.ambient);
+		float3 result_color = triangle.emissive;
+
+		float3 position = ray.position + ray.direction * payload.t;
+		float3 normal = payload.bary.x * triangle.na + payload.bary.y * triangle.nb + payload.bary.z * triangle.nc;
+
+		for (auto& light : lights) 
+		{
+			cg::renderer::ray to_light(position, light.position - position);
+			result_color += triangle.diffuse * light.color * std::max(dot(normal, to_light.direction), 0.f);
+		}
+
+		payload.color = cg::color::from_float3(result_color);
 		return payload;
 	};
 
